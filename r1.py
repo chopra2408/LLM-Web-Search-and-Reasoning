@@ -17,7 +17,12 @@ from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
 from crawl4ai.content_filter_strategy import BM25ContentFilter
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.models import CrawlResult
-import ollama  # Make sure Ollama is installed and configured
+import ollama  
+
+#import nltk
+# (Optional) If needed, force downloading required nltk data
+# nltk.download('punkt', force=True)
+# nltk.download('averaged_perceptron_tagger', force=True)
 
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
