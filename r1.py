@@ -5,7 +5,6 @@ import chromadb
 import sys
 import tempfile
 import os
-from dotenv import load_dotenv
 from chromadb.config import Settings
 from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
@@ -26,10 +25,6 @@ import ollama
 
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
-load_dotenv()
-
-groq_api_key = os.getenv("GROQ_API_KEY")
 
 system_prompt = """
 You are an AI assistant tasked with providing detailed answers based solely on the given context.
