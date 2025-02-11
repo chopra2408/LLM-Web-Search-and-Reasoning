@@ -54,6 +54,9 @@ Important: Base your entire response solely on the information provided in the c
 """
 
 def call_llm(input: str, with_context: bool = True, context: str | None = None, use_deepseek: bool = False):
+    """
+    Calls the LLM via Ollama using streaming and returns the complete concatenated output.
+    """
     messages = [
         {
             "role": "system",
@@ -85,6 +88,16 @@ def call_llm(input: str, with_context: bool = True, context: str | None = None, 
                 break
 
 def get_vector_collection() -> tuple[chromadb.Collection, chromadb.Client]:
+    """Creates or retrieves a vector collection for storing embeddings.
+
+    Creates an embedding function using Ollama and initializes a persistent ChromaDB client.
+    Returns both the collection and client objects.
+
+    Returns:
+        tuple[chromadb.Collection, chromadb.Client]: A tuple containing:
+            - The ChromaDB collection for storing embeddings
+            - The ChromaDB client instance
+    """
     ollama_ef = OllamaEmbeddingFunction(
         url="http://localhost:11434/api/embeddings",
         model_name="nomic-embed-text"
@@ -104,6 +117,18 @@ def get_vector_collection() -> tuple[chromadb.Collection, chromadb.Client]:
     )
     
 def normalize_url(url):
+    """Normalizes a URL by removing common prefixes and replacing special characters.
+
+    Args:
+        url (str): The URL to normalize.
+
+    Returns:
+        str: The normalized URL with https://, www. removed and /, -, . replaced with underscores.
+
+    Example:
+        >>> normalize_url("https://www.example.com/path")
+        "example_com_path"
+    """
     normalized_url = (
         url.replace("https://", "")
            .replace("www.", "")
@@ -115,6 +140,23 @@ def normalize_url(url):
     return normalized_url    
     
 def add_to_vector_database(results: list[CrawlResult]):
+    """Adds crawl results to a vector database for semantic search.
+
+    Takes a list of crawl results, processes the markdown content by splitting it into chunks,
+    and stores the chunks in a ChromaDB vector collection with associated metadata.
+
+    Args:
+        results (list[CrawlResult]): List of crawl results containing markdown content and URLs
+
+    Returns:
+        None
+
+    Note:
+        - Uses RecursiveCharacterTextSplitter to split markdown into chunks
+        - Creates temporary markdown files for processing
+        - Normalizes URLs for use as document IDs
+        - Upserts documents, metadata and IDs to ChromaDB collection
+    """
     collection, _ = get_vector_collection()
 
     for result in results:
@@ -154,6 +196,20 @@ def add_to_vector_database(results: list[CrawlResult]):
             )        
                 
 async def crawl_webpages(urls: list[str], query: str) -> CrawlResult:
+    """Asynchronously crawls multiple webpages and extracts relevant content based on a prompt.
+
+    Args:
+        urls (list[str]): List of URLs to crawl
+        prompt (str): Query text used to filter relevant content from the pages
+
+    Returns:
+        CrawlResult: Results from crawling containing filtered markdown content and metadata
+
+    Note:
+        Uses BM25 content filtering to extract relevant sections based on the prompt.
+        Configures crawler to exclude navigation elements, forms, images etc.
+        Runs in headless browser mode with text-only extraction.
+    """
     bm25_filter = BM25ContentFilter(user_query=query, bm25_threshold=1.2)
     md_generator = DefaultMarkdownGenerator(content_filter=bm25_filter)
     
@@ -175,6 +231,15 @@ async def crawl_webpages(urls: list[str], query: str) -> CrawlResult:
         return results
     
 def check_robots_txt(urls: list[str]) -> list[str]:
+    """Checks robots.txt files to determine which URLs are allowed to be crawled.
+
+    Args:
+        urls (list[str]): List of URLs to check against their robots.txt files.
+
+    Returns:
+        list[str]: List of URLs that are allowed to be crawled according to robots.txt rules.
+            If a robots.txt file is missing or there's an error, the URL is assumed to be allowed.
+    """
     allowed_urls = []
     
     for url in urls:
@@ -192,6 +257,21 @@ def check_robots_txt(urls: list[str]) -> list[str]:
     return allowed_urls
 
 def get_web_urls(search_terms: str, num_results: int = 10) -> list[str]:
+    """Performs a web search and returns filtered URLs.
+
+    Uses DuckDuckGo search to find relevant web pages, excluding certain domains and checking
+    robots.txt compliance.
+
+    Args:
+        search_term (str): The search query to use
+        num_results (int, optional): Maximum number of search results to return. Defaults to 10.
+
+    Returns:
+        list[str]: List of URLs that are allowed to be crawled according to robots.txt
+
+    Raises:
+        Exception: If web search fails, prints error message and stops execution
+    """
     try:
         query = search_terms
         discard_urls = ["youtube.com", "britannica.com", "vimeo.com"]
