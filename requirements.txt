@@ -1,0 +1,11 @@
+langchain
+chromabd
+langchain_community
+crawl4ai
+streamlit
+python-dootenv
+ollama
+duckduckgo_search
+markdown
+playwright
+
